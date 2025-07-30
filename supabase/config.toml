@@ -1,1 +1,23 @@
 project_id = "qhwpdfvhmkrreqndnogm"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[functions.validate-token]
+verify_jwt = false
+
+[functions.list-actors]
+verify_jwt = false
+
+[functions.get-actor-schema]
+verify_jwt = false
+
+[functions.run-actor]
+verify_jwt = false
