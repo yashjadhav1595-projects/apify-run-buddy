@@ -4,33 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 import type { ApifyUser, ApifyActor, ApifySchema, ApifyRunResult, ExecutionMode } from '@/types/apify';
 
 export const useApifyToken = () => {
-  const [token, setToken] = useState<string>('');
-  
   const validateToken = useMutation({
-    mutationFn: async (apiToken: string): Promise<ApifyUser> => {
-      const { data, error } = await supabase.functions.invoke('validate-token', {
-        body: { token: apiToken }
-      });
+    mutationFn: async (): Promise<ApifyUser> => {
+      const { data, error } = await supabase.functions.invoke('validate-token');
       
       if (error) throw new Error(error.message);
       if (!data.valid) throw new Error(data.error || 'Invalid token');
       
       return data.user;
-    },
-    onSuccess: (user, apiToken) => {
-      setToken(apiToken);
     }
   });
 
-  const clearToken = () => {
-    setToken('');
-    validateToken.reset();
-  };
-
   return {
-    token,
-    setToken,
-    clearToken,
     validateToken,
     user: validateToken.data,
     isValidating: validateToken.isPending,
@@ -38,29 +23,26 @@ export const useApifyToken = () => {
   };
 };
 
-export const useApifyActors = (token: string) => {
+export const useApifyActors = () => {
   return useQuery({
-    queryKey: ['apify-actors', token],
+    queryKey: ['apify-actors'],
     queryFn: async (): Promise<ApifyActor[]> => {
-      const { data, error } = await supabase.functions.invoke('list-actors', {
-        body: { token }
-      });
+      const { data, error } = await supabase.functions.invoke('list-actors');
       
       if (error) throw new Error(error.message);
       if (data.error) throw new Error(data.error);
       
       return data.actors;
-    },
-    enabled: !!token
+    }
   });
 };
 
-export const useApifySchema = (token: string, actorId: string) => {
+export const useApifySchema = (actorId: string) => {
   return useQuery({
-    queryKey: ['apify-schema', token, actorId],
+    queryKey: ['apify-schema', actorId],
     queryFn: async (): Promise<{ schema: ApifySchema; version: string }> => {
       const { data, error } = await supabase.functions.invoke('get-actor-schema', {
-        body: { token, actorId }
+        body: { actorId }
       });
       
       if (error) throw new Error(error.message);
@@ -68,25 +50,23 @@ export const useApifySchema = (token: string, actorId: string) => {
       
       return data;
     },
-    enabled: !!token && !!actorId
+    enabled: !!actorId
   });
 };
 
 export const useApifyRun = () => {
   return useMutation({
     mutationFn: async ({ 
-      token, 
       actorId, 
       input, 
       mode 
     }: { 
-      token: string; 
       actorId: string; 
       input: any; 
       mode: ExecutionMode; 
     }): Promise<ApifyRunResult> => {
       const { data, error } = await supabase.functions.invoke('run-actor', {
-        body: { token, actorId, input, mode }
+        body: { actorId, input, mode }
       });
       
       if (error) throw new Error(error.message);
