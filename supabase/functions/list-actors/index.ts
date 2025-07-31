@@ -7,7 +7,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('List-actors function called, method:', req.method);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
+  
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -16,12 +20,14 @@ serve(async (req) => {
     console.log('Checking for APIFY_API_TOKEN:', token ? 'Found' : 'Not found');
 
     if (!token) {
+      console.error('No APIFY_API_TOKEN found in environment');
       return new Response(
         JSON.stringify({ error: 'Apify API token not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('Making request to Apify API...');
     const response = await fetch('https://api.apify.com/v2/acts?my=1&limit=100', {
       headers: {
         'Authorization': `Bearer ${token}`,
