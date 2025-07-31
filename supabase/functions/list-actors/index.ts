@@ -13,6 +13,7 @@ serve(async (req) => {
 
   try {
     const token = Deno.env.get('APIFY_API_TOKEN');
+    console.log('Checking for APIFY_API_TOKEN:', token ? 'Found' : 'Not found');
 
     if (!token) {
       return new Response(
