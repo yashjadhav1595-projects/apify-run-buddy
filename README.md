@@ -1,73 +1,144 @@
-# Welcome to your Lovable project
+# Apify Actor Runner
 
-## Project info
+A web application that allows users to authenticate with their Apify API key, select actors, configure input parameters dynamically, and execute single actor runs with immediate results.
 
-**URL**: https://lovable.dev/projects/e091f552-8977-48ca-9ba6-5620ab6a68c2
+## 🚀 Quick Start
 
-## How can I edit this code?
+### Prerequisites
+- Node.js & npm installed ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- Apify API account and token
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/e091f552-8977-48ca-9ba6-5620ab6a68c2) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Navigate to project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🏗️ Architecture
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Frontend (React + TypeScript)
+- **ApifyRunner**: Main application component
+- **TokenInput**: Secure API key authentication
+- **ActorSelector**: Browse and select available actors
+- **DynamicForm**: Runtime schema-based form generation
+- **ResultDisplay**: Execution results and error handling
 
-**Use GitHub Codespaces**
+### Backend (Supabase Edge Functions)
+- **validate-token**: Authenticates Apify API keys
+- **list-actors**: Fetches user's available actors
+- **get-actor-schema**: Retrieves actor input schemas
+- **run-actor**: Executes single actor runs
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🎯 Key Features
 
-## What technologies are used for this project?
+### ✅ Dynamic Schema Loading
+Schemas are fetched at runtime for any actor the user selects—no pre-stored definitions.
 
-This project is built with:
+### ✅ Single-Run Execution  
+Performs exactly one actor execution per request with immediate result presentation.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### ✅ Comprehensive Error Handling
+Clear feedback for invalid keys, schema mismatches, and execution failures.
 
-## How can I deploy this project?
+### ✅ Secure API Integration
+All Apify API communication handled securely through backend functions.
 
-Simply open [Lovable](https://lovable.dev/projects/e091f552-8977-48ca-9ba6-5620ab6a68c2) and click on Share -> Publish.
+## 🧪 Testing
 
-## Can I connect a custom domain to my Lovable project?
+### Recommended Test Actor
+**Actor**: `apify/web-scraper`
+- **Purpose**: Website content extraction
+- **Why**: Well-documented, reliable, and demonstrates complex input schemas
 
-Yes, you can!
+### Test Flow
+1. Enter your Apify API token
+2. Select the `apify/web-scraper` actor
+3. Configure input parameters (URL, selectors, etc.)
+4. Execute and view scraped results
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🎨 Design Choices
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Architecture Decisions
+- **Supabase Edge Functions**: Chosen for secure API key handling and serverless scaling
+- **React Query**: Implements efficient caching and error handling for API calls
+- **Dynamic Form Generation**: Uses JSON Schema to automatically create appropriate input fields
+
+### Security Considerations
+- API tokens never exposed to frontend
+- All Apify API calls proxied through secure backend functions
+- Input validation based on actor schemas
+
+### User Experience
+- Progressive disclosure: Token → Actor → Schema → Execution → Results
+- Real-time feedback with loading states and error messages
+- Responsive design with clean, intuitive interface
+
+## 📸 Application Flow
+
+1. **Authentication**: User enters Apify API token
+2. **Actor Selection**: Browse available actors with descriptions
+3. **Configuration**: Dynamic form based on selected actor's schema
+4. **Execution**: Single-click execution with real-time status
+5. **Results**: Immediate display of execution results or error details
+
+## 🛠️ Technologies Used
+
+- **Frontend**: React, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: Supabase Edge Functions (Deno)
+- **State Management**: React Query (@tanstack/react-query)
+- **Forms**: React Hook Form with dynamic validation
+- **Build Tool**: Vite
+- **Deployment**: Lovable Platform
+
+## 🚀 Deployment
+
+### Using Lovable Platform
+1. Open [Lovable Project](https://lovable.dev/projects/e091f552-8977-48ca-9ba6-5620ab6a68c2)
+2. Click Share → Publish
+3. Optional: Connect custom domain via Project → Settings → Domains
+
+### Manual Deployment
+```sh
+# Build for production
+npm run build
+
+# Deploy dist/ folder to your hosting platform
+```
+
+## 🔧 Environment Setup
+
+### Required Secrets (Supabase)
+- `APIFY_API_TOKEN`: Your Apify API token for backend operations
+
+### Configuration
+All API endpoints and configurations are handled automatically through the Supabase integration.
+
+## 📋 Assignment Requirements Checklist
+
+- ✅ **Web Frontend**: Authentication, actor selection, schema presentation, execution trigger
+- ✅ **Backend Integration**: Secure Apify API communication
+- ✅ **Dynamic Schema Loading**: Runtime schema fetching and form generation
+- ✅ **Single-Run Execution**: One execution per request with immediate results
+- ✅ **Error Handling**: Comprehensive error feedback and user guidance
+- ✅ **Minimal Dependencies**: Clean, focused solution without unnecessary complexity
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes and test thoroughly
+4. Submit a pull request with detailed description
+
+## 📄 License
+
+This project is part of an integration developer assignment and is provided as-is for evaluation purposes.
