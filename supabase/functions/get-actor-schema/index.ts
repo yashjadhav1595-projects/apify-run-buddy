@@ -12,19 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { actorId } = await req.json();
-    const token = Deno.env.get('APIFY_API_TOKEN');
+    const { token, actorId } = await req.json();
 
-    if (!token) {
+    if (!token || !actorId) {
       return new Response(
-        JSON.stringify({ error: 'Apify API token not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!actorId) {
-      return new Response(
-        JSON.stringify({ error: 'Actor ID is required' }),
+        JSON.stringify({ error: 'Token and actorId are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

@@ -12,12 +12,12 @@ serve(async (req) => {
   }
 
   try {
-    const token = Deno.env.get('APIFY_API_TOKEN');
+    const { token } = await req.json();
 
     if (!token) {
       return new Response(
-        JSON.stringify({ error: 'Apify API token not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Token is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

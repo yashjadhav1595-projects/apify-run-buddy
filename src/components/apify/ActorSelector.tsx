@@ -6,12 +6,13 @@ import { useApifyActors } from '@/hooks/useApify';
 import type { ApifyActor } from '@/types/apify';
 
 interface ActorSelectorProps {
+  token: string;
   selectedActor?: ApifyActor;
   onActorSelect: (actor: ApifyActor) => void;
 }
 
-export const ActorSelector = ({ selectedActor, onActorSelect }: ActorSelectorProps) => {
-  const { data: actors, isLoading, error } = useApifyActors();
+export const ActorSelector = ({ token, selectedActor, onActorSelect }: ActorSelectorProps) => {
+  const { data: actors, isLoading, error } = useApifyActors(token);
 
   if (isLoading) {
     return (

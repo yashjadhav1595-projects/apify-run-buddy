@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TokenInput } from '@/components/apify/TokenInput';
 import { ActorSelector } from '@/components/apify/ActorSelector';
 import { DynamicForm } from '@/components/apify/DynamicForm';
 import { ResultDisplay } from '@/components/apify/ResultDisplay';
@@ -10,12 +11,18 @@ import { useToast } from '@/hooks/use-toast';
 import type { ApifyActor, ApifyRunResult, ExecutionMode } from '@/types/apify';
 
 export default function ApifyRunner() {
+  const [token, setToken] = useState<string>('');
   const [selectedActor, setSelectedActor] = useState<ApifyActor | undefined>();
   const [result, setResult] = useState<ApifyRunResult | undefined>();
   const [error, setError] = useState<string>('');
   
   const runActor = useApifyRun();
   const { toast } = useToast();
+
+  const handleTokenValidated = (validToken: string) => {
+    setToken(validToken);
+    setError('');
+  };
 
   const handleActorSelect = (actor: ApifyActor) => {
     setSelectedActor(actor);
@@ -24,13 +31,14 @@ export default function ApifyRunner() {
   };
 
   const handleFormSubmit = async (data: any, mode: ExecutionMode) => {
-    if (!selectedActor) return;
+    if (!token || !selectedActor) return;
 
     setError('');
     setResult(undefined);
 
     try {
       const runResult = await runActor.mutateAsync({
+        token,
         actorId: selectedActor.id,
         input: data,
         mode
@@ -62,6 +70,7 @@ export default function ApifyRunner() {
   };
 
   const handleReset = () => {
+    setToken('');
     setSelectedActor(undefined);
     setResult(undefined);
     setError('');
@@ -81,7 +90,7 @@ export default function ApifyRunner() {
               </p>
             </div>
           </div>
-          {selectedActor && (
+          {token && (
             <Button variant="outline" onClick={handleReset}>
               <RotateCcw className="h-4 w-4 mr-2" />
               Reset
@@ -102,20 +111,29 @@ export default function ApifyRunner() {
 
         {/* Main Content */}
         <div className="space-y-6">
-          {/* Step 1: Actor Selection */}
-          {!selectedActor && (
+          {/* Step 1: Token Input */}
+          {!token && (
+            <div className="flex justify-center">
+              <TokenInput onTokenValidated={handleTokenValidated} />
+            </div>
+          )}
+
+          {/* Step 2: Actor Selection */}
+          {token && !selectedActor && (
             <div className="max-w-2xl mx-auto">
               <ActorSelector 
+                token={token} 
                 selectedActor={selectedActor}
                 onActorSelect={handleActorSelect} 
               />
             </div>
           )}
 
-          {/* Step 2: Configuration Form */}
-          {selectedActor && !result && (
+          {/* Step 3: Configuration Form */}
+          {token && selectedActor && !result && (
             <div className="max-w-2xl mx-auto">
               <DynamicForm
+                token={token}
                 actorId={selectedActor.id}
                 actorName={selectedActor.title || selectedActor.name}
                 onSubmit={handleFormSubmit}
@@ -124,7 +142,7 @@ export default function ApifyRunner() {
             </div>
           )}
 
-          {/* Step 3: Results */}
+          {/* Step 4: Results */}
           {result && (
             <div className="max-w-4xl mx-auto space-y-4">
               <ResultDisplay result={result} />

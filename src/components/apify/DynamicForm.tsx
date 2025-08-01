@@ -15,15 +15,16 @@ import { useApifySchema } from '@/hooks/useApify';
 import type { ApifySchema, ExecutionMode } from '@/types/apify';
 
 interface DynamicFormProps {
+  token: string;
   actorId: string;
   actorName: string;
   onSubmit: (data: any, mode: ExecutionMode) => void;
   isSubmitting: boolean;
 }
 
-export const DynamicForm = ({ actorId, actorName, onSubmit, isSubmitting }: DynamicFormProps) => {
+export const DynamicForm = ({ token, actorId, actorName, onSubmit, isSubmitting }: DynamicFormProps) => {
   const [mode, setMode] = useState<ExecutionMode>('OUTPUT');
-  const { data: schemaData, isLoading, error } = useApifySchema(actorId);
+  const { data: schemaData, isLoading, error } = useApifySchema(token, actorId);
   const form = useForm();
 
   useEffect(() => {

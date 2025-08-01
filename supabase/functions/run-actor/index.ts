@@ -7,47 +7,16 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('Run-actor function called, method:', req.method);
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
-  
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const body = await req.text();
-    console.log('Request body:', body);
-    
-    let parsedBody;
-    try {
-      parsedBody = JSON.parse(body);
-    } catch (e) {
-      console.error('Failed to parse JSON:', e);
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { token, actorId, input, mode = 'OUTPUT' } = await req.json();
 
-    const { actorId, input, mode = 'OUTPUT' } = parsedBody;
-    console.log('Parsed data:', { actorId, input, mode });
-    
-    const token = Deno.env.get('APIFY_API_TOKEN');
-    console.log('API token status:', token ? 'Found' : 'Not found');
-
-    if (!token) {
-      console.error('No APIFY_API_TOKEN found in environment');
+    if (!token || !actorId) {
       return new Response(
-        JSON.stringify({ error: 'Apify API token not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!actorId) {
-      console.error('No actorId provided in request');
-      return new Response(
-        JSON.stringify({ error: 'Actor ID is required' }),
+        JSON.stringify({ error: 'Token and actorId are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
