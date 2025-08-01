@@ -12,10 +12,10 @@ A web application that allows users to authenticate with their Apify API key, se
 
 ```sh
 # Clone the repository
-git clone <YOUR_GIT_URL>
+git clone <https://github.com/yashjadhav1595-projects/apify-run-buddy.git>
 
 # Navigate to project directory
-cd <YOUR_PROJECT_NAME>
+cd <api-run-buddy>
 
 # Install dependencies
 npm install
@@ -98,24 +98,8 @@ All Apify API communication handled securely through backend functions.
 - **State Management**: React Query (@tanstack/react-query)
 - **Forms**: React Hook Form with dynamic validation
 - **Build Tool**: Vite
-- **Deployment**: Lovable Platform
 
-## 🚀 Deployment
 
-### Using Lovable Platform
-1. Open [Lovable Project](https://lovable.dev/projects/e091f552-8977-48ca-9ba6-5620ab6a68c2)
-2. Click Share → Publish
-3. Optional: Connect custom domain via Project → Settings → Domains
-
-### Manual Deployment
-```sh
-# Build for production
-npm run build
-
-# Deploy dist/ folder to your hosting platform
-```
-
-## 🔧 Environment Setup
 
 ### Required Secrets (Supabase)
 - `APIFY_API_TOKEN`: Your Apify API token for backend operations
