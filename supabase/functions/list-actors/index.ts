@@ -7,29 +7,52 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log(`🚀 list-actors function called: ${req.method}`);
+  
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight handled');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { token } = await req.json();
+    const body = await req.json();
+    console.log('📥 Request body received:', { hasToken: !!body?.token });
 
-    if (!token) {
+    // Use backend APIFY_API_TOKEN instead of frontend token
+    const backendToken = Deno.env.get('APIFY_API_TOKEN');
+    
+    if (!backendToken) {
+      console.error('❌ Backend APIFY_API_TOKEN not configured');
       return new Response(
-        JSON.stringify({ error: 'Token is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Backend API token not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('✅ Using backend APIFY_API_TOKEN for authentication');
+
+    console.log('📡 Fetching actors from Apify API...');
+    
     const response = await fetch('https://api.apify.com/v2/acts?my=1&limit=100', {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${backendToken}`,
       },
     });
 
+    console.log(`📡 Apify API response status: ${response.status}`);
+    
     const data = await response.json();
+    console.log(`📋 API response data:`, { 
+      success: response.ok, 
+      itemCount: data?.data?.items?.length || 0,
+      hasError: !!data.error 
+    });
 
     if (!response.ok) {
+      console.error('❌ Apify API error:', {
+        status: response.status,
+        error: data.error?.message || 'Unknown error'
+      });
       return new Response(
         JSON.stringify({ error: data.error?.message || 'Failed to fetch actors' }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -44,14 +67,19 @@ serve(async (req) => {
       username: actor.username
     }));
 
+    console.log(`✅ Successfully processed ${actors.length} actors`);
+
     return new Response(
       JSON.stringify({ actors }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error fetching actors:', error);
+    console.error('❌ Unexpected error in list-actors:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch actors' }),
+      JSON.stringify({ 
+        error: 'Internal server error while fetching actors',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

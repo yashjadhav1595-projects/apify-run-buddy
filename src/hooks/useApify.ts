@@ -42,16 +42,38 @@ export const useApifyActors = (token: string) => {
   return useQuery({
     queryKey: ['apify-actors', token],
     queryFn: async (): Promise<ApifyActor[]> => {
-      const { data, error } = await supabase.functions.invoke('list-actors', {
-        body: { token }
-      });
+      console.log('🔍 Fetching actors from backend...');
       
-      if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
-      
-      return data.actors;
+      try {
+        const { data, error } = await supabase.functions.invoke('list-actors', {
+          body: { token }
+        });
+        
+        console.log('📡 List actors response:', { data, error });
+        
+        if (error) {
+          console.error('❌ Supabase function error:', error);
+          throw new Error(error.message);
+        }
+        
+        if (data.error) {
+          console.error('❌ API error from backend:', data.error);
+          throw new Error(data.error);
+        }
+        
+        console.log(`✅ Successfully fetched ${data.actors?.length || 0} actors`);
+        return data.actors;
+      } catch (err: any) {
+        console.error('❌ Error in useApifyActors:', err);
+        throw err;
+      }
     },
-    enabled: !!token
+    enabled: !!token,
+    retry: (failureCount, error) => {
+      console.log(`🔄 Retry attempt ${failureCount} for actors fetch:`, error);
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
   });
 };
 
@@ -59,16 +81,43 @@ export const useApifySchema = (token: string, actorId: string) => {
   return useQuery({
     queryKey: ['apify-schema', token, actorId],
     queryFn: async (): Promise<{ schema: ApifySchema; version: string }> => {
-      const { data, error } = await supabase.functions.invoke('get-actor-schema', {
-        body: { token, actorId }
-      });
+      console.log(`🔍 Fetching schema for actor: ${actorId}`);
       
-      if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
-      
-      return data;
+      try {
+        const { data, error } = await supabase.functions.invoke('get-actor-schema', {
+          body: { token, actorId }
+        });
+        
+        console.log('📡 Get schema response:', { data, error, actorId });
+        
+        if (error) {
+          console.error('❌ Supabase function error:', error);
+          throw new Error(error.message);
+        }
+        
+        if (data.error) {
+          console.error('❌ API error from backend:', data.error);
+          throw new Error(data.error);
+        }
+        
+        console.log(`✅ Successfully fetched schema for actor ${actorId}:`, {
+          version: data.version,
+          hasProperties: !!data.schema?.properties,
+          propertyCount: data.schema?.properties ? Object.keys(data.schema.properties).length : 0
+        });
+        
+        return data;
+      } catch (err: any) {
+        console.error('❌ Error in useApifySchema:', err);
+        throw err;
+      }
     },
-    enabled: !!token && !!actorId
+    enabled: !!token && !!actorId,
+    retry: (failureCount, error) => {
+      console.log(`🔄 Retry attempt ${failureCount} for schema fetch:`, error);
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
   });
 };
 
@@ -85,14 +134,55 @@ export const useApifyRun = () => {
       input: any; 
       mode: ExecutionMode; 
     }): Promise<ApifyRunResult> => {
-      const { data, error } = await supabase.functions.invoke('run-actor', {
-        body: { token, actorId, input, mode }
+      console.log('🚀 Starting actor run:', {
+        actorId,
+        mode,
+        inputKeys: Object.keys(input || {}),
+        timestamp: new Date().toISOString()
       });
       
-      if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
-      
-      return data;
-    }
+      try {
+        const { data, error } = await supabase.functions.invoke('run-actor', {
+          body: { token, actorId, input, mode }
+        });
+        
+        console.log('📡 Run actor response:', { 
+          data: data ? { 
+            runId: data.run?.id, 
+            status: data.run?.status, 
+            hasResult: !!data.result,
+            hasError: !!data.error 
+          } : null, 
+          error 
+        });
+        
+        if (error) {
+          console.error('❌ Supabase function error:', error);
+          throw new Error(error.message);
+        }
+        
+        if (data.error) {
+          console.error('❌ API error from backend:', data.error);
+          throw new Error(data.error);
+        }
+        
+        console.log('✅ Actor run completed successfully:', {
+          runId: data.run.id,
+          status: data.run.status,
+          duration: data.run.stats?.durationMillis,
+          resultType: mode
+        });
+        
+        return data;
+      } catch (err: any) {
+        console.error('❌ Error in useApifyRun:', err);
+        throw err;
+      }
+    },
+    retry: (failureCount, error) => {
+      console.log(`🔄 Retry attempt ${failureCount} for actor run:`, error);
+      return failureCount < 2; // Less retries for runs
+    },
+    retryDelay: 2000
   });
 };

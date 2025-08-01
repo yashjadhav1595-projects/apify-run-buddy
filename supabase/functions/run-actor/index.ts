@@ -122,9 +122,12 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error('Error running actor:', error);
+    console.error('❌ Unexpected error in run-actor:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to run actor' }),
+      JSON.stringify({ 
+        error: 'Internal server error while running actor',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
