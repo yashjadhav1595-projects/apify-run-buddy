@@ -13,14 +13,24 @@ serve(async (req) => {
 
   try {
     const { token, actorId, input, mode = 'OUTPUT' } = await req.json();
+    
+    console.log('🚀 Run actor request received:', {
+      actorId,
+      mode,
+      hasToken: !!token,
+      timestamp: new Date().toISOString()
+    });
 
     if (!token || !actorId) {
+      console.error('❌ Missing required parameters:', { hasToken: !!token, hasActorId: !!actorId });
       return new Response(
         JSON.stringify({ error: 'Token and actorId are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('📡 Starting actor run with Apify API...');
+    
     // Start the actor run
     const runResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?waitForFinish=60`, {
       method: 'POST',
@@ -32,8 +42,19 @@ serve(async (req) => {
     });
 
     const runData = await runResponse.json();
+    
+    console.log('📡 Apify API response:', {
+      status: runResponse.status,
+      ok: runResponse.ok,
+      runStatus: runData.data?.status,
+      runId: runData.data?.id
+    });
 
     if (!runResponse.ok) {
+      console.error('❌ Apify API error:', {
+        status: runResponse.status,
+        error: runData.error?.message || 'Failed to run actor'
+      });
       return new Response(
         JSON.stringify({ error: runData.error?.message || 'Failed to run actor' }),
         { status: runResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -41,9 +62,15 @@ serve(async (req) => {
     }
 
     const run = runData.data;
+    console.log('✅ Actor run initiated:', {
+      runId: run.id,
+      status: run.status,
+      actorId
+    });
 
     // If run finished, get the results
     if (run.status === 'SUCCEEDED') {
+      console.log('🎉 Actor run completed successfully, fetching results...');
       let resultData = null;
 
       if (mode === 'DATASET' && run.defaultDatasetId) {

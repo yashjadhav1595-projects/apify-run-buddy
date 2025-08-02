@@ -5,10 +5,11 @@ import { ActorSelector } from '@/components/apify/ActorSelector';
 import { DynamicForm } from '@/components/apify/DynamicForm';
 import { ResultDisplay } from '@/components/apify/ResultDisplay';
 import { ErrorBanner } from '@/components/apify/ErrorBanner';
+import { TokenInput } from '@/components/apify/TokenInput';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, RefreshCw, Play, Settings, BarChart3, Home } from 'lucide-react';
-import { useApifyActors, useApifyRun } from '@/hooks/useApify';
+import { ArrowLeft, RefreshCw, Play, Settings, BarChart3, Home, LogOut } from 'lucide-react';
+import { useApifyToken, useApifyActors, useApifyRun } from '@/hooks/useApify';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import type { ApifyActor, ApifyRunResult, ExecutionMode } from '@/types/apify';
@@ -23,9 +24,17 @@ const ApifyApp = () => {
   
   const { toast } = useToast();
   
-  // Use backend token - no frontend token needed
-  const BACKEND_TOKEN = 'backend-handled';
-  const { data: actors, isLoading: loadingActors, error: actorsError, refetch: refetchActors } = useApifyActors(BACKEND_TOKEN);
+  // Token management
+  const { 
+    token, 
+    validateToken, 
+    user, 
+    isValidating, 
+    validationError,
+    clearToken 
+  } = useApifyToken();
+  
+  const { data: actors, isLoading: loadingActors, error: actorsError, refetch: refetchActors } = useApifyActors(token);
   const runMutation = useApifyRun();
 
   useEffect(() => {
@@ -58,6 +67,17 @@ const ApifyApp = () => {
     setError(null);
   };
 
+  const handleTokenSubmit = (apiToken: string) => {
+    console.log('🔑 Token submitted for validation');
+    validateToken.mutate(apiToken);
+  };
+
+  const handleLogout = () => {
+    console.log('🚪 Logging out user');
+    clearToken();
+    handleReset();
+  };
+
   const handleFormSubmit = async (data: any, mode: ExecutionMode) => {
     if (!selectedActor) {
       console.error('❌ No actor selected for form submission');
@@ -74,7 +94,7 @@ const ApifyApp = () => {
 
     try {
       const runResult = await runMutation.mutateAsync({
-        token: BACKEND_TOKEN,
+        token: token,
         actorId: selectedActor.id,
         input: data,
         mode
@@ -136,6 +156,17 @@ const ApifyApp = () => {
     );
   }
 
+  // Show token input if no token is available
+  if (!token) {
+    return (
+      <TokenInput
+        onTokenSubmit={handleTokenSubmit}
+        isValidating={isValidating}
+        validationError={validationError}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
@@ -156,9 +187,15 @@ const ApifyApp = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="hidden md:flex">
-                Backend Authenticated
-              </Badge>
+              {user && (
+                <Badge variant="secondary" className="hidden md:flex">
+                  {user.username}
+                </Badge>
+              )}
+              <Button onClick={handleLogout} variant="outline" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
               {selectedActor && (
                 <Button onClick={handleReset} variant="outline" size="sm">
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -244,7 +281,7 @@ const ApifyApp = () => {
               </Card>
             ) : (
               <ActorSelector
-                token={BACKEND_TOKEN}
+                token={token}
                 selectedActor={selectedActor || undefined}
                 onActorSelect={handleActorSelect}
               />
@@ -260,7 +297,7 @@ const ApifyApp = () => {
               </div>
               
               <DynamicForm
-                token={BACKEND_TOKEN}
+                token={token}
                 actorId={selectedActor.id}
                 actorName={selectedActor.title || selectedActor.name}
                 onSubmit={handleFormSubmit}

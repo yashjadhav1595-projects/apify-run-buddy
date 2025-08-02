@@ -8,21 +8,46 @@ export const useApifyToken = () => {
   
   const validateToken = useMutation({
     mutationFn: async (apiToken: string): Promise<ApifyUser> => {
-      const { data, error } = await supabase.functions.invoke('validate-token', {
-        body: { token: apiToken }
-      });
+      console.log('🔍 Validating Apify token...');
       
-      if (error) throw new Error(error.message);
-      if (!data.valid) throw new Error(data.error || 'Invalid token');
-      
-      return data.user;
+      try {
+        const { data, error } = await supabase.functions.invoke('validate-token', {
+          body: { token: apiToken }
+        });
+        
+        console.log('📡 Token validation response:', { 
+          valid: data?.valid, 
+          error: error || data?.error 
+        });
+        
+        if (error) {
+          console.error('❌ Supabase function error in token validation:', error);
+          throw new Error(error.message);
+        }
+        
+        if (!data.valid) {
+          console.error('❌ Token validation failed:', data.error);
+          throw new Error(data.error || 'Invalid token');
+        }
+        
+        console.log('✅ Token validated successfully for user:', data.user.username);
+        return data.user;
+      } catch (err: any) {
+        console.error('❌ Error in token validation:', err);
+        throw err;
+      }
     },
     onSuccess: (user, apiToken) => {
+      console.log('✅ Token validation successful, storing token');
       setToken(apiToken);
+    },
+    onError: (error) => {
+      console.error('❌ Token validation failed:', error);
     }
   });
 
   const clearToken = () => {
+    console.log('🗑️ Clearing stored token');
     setToken('');
     validateToken.reset();
   };
