@@ -15,7 +15,7 @@ import { Link } from 'react-router-dom';
 import type { ApifyActor, ApifyRunResult, ExecutionMode } from '@/types/apify';
 
 const ApifyApp = () => {
-  console.log('🎯 ApifyApp component rendered');
+  console.log('🎯 ApifyApp component rendered - Cache Clear v2.0');
   
   const [selectedActor, setSelectedActor] = useState<ApifyActor | null>(null);
   const [result, setResult] = useState<ApifyRunResult | null>(null);
