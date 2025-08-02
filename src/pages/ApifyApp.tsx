@@ -8,19 +8,31 @@ import { ErrorBanner } from '@/components/apify/ErrorBanner';
 import { TokenInput } from '@/components/apify/TokenInput';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, RefreshCw, Play, Settings, BarChart3, Home, LogOut } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, RefreshCw, Play, Settings, BarChart3, Home, LogOut, Search, Download, Copy, History, Star, Filter, Clock, User } from 'lucide-react';
 import { useApifyToken, useApifyActors, useApifyRun } from '@/hooks/useApify';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import type { ApifyActor, ApifyRunResult, ExecutionMode } from '@/types/apify';
 
 const ApifyApp = () => {
-  console.log('🎯 ApifyApp component rendered - Cache Clear v2.0');
+  console.log('🎯 ApifyApp component rendered - Enhanced v3.0');
   
   const [selectedActor, setSelectedActor] = useState<ApifyActor | null>(null);
   const [result, setResult] = useState<ApifyRunResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [runHistory, setRunHistory] = useState<Array<{
+    id: string;
+    actorName: string;
+    timestamp: string;
+    duration: number;
+    status: string;
+  }>>([]);
+  const [favoriteActors, setFavoriteActors] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
   
   const { toast } = useToast();
   
@@ -78,12 +90,75 @@ const ApifyApp = () => {
     handleReset();
   };
 
+  // Enhanced functionality handlers
+  const handleToggleFavorite = (actorId: string) => {
+    console.log('⭐ Toggling favorite for actor:', actorId);
+    setFavoriteActors(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(actorId)) {
+        newFavorites.delete(actorId);
+      } else {
+        newFavorites.add(actorId);
+      }
+      return newFavorites;
+    });
+  };
+
+  const handleExportResult = () => {
+    if (!result) return;
+    
+    console.log('📁 Exporting result data');
+    const dataStr = JSON.stringify(result, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `apify-result-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'Result exported',
+      description: 'JSON file downloaded successfully',
+    });
+  };
+
+  const handleCopyResult = async () => {
+    if (!result) return;
+    
+    console.log('📋 Copying result to clipboard');
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+      toast({
+        title: 'Copied to clipboard',
+        description: 'Result data copied successfully',
+      });
+    } catch (err) {
+      console.error('❌ Failed to copy to clipboard:', err);
+      toast({
+        title: 'Copy failed',
+        description: 'Unable to copy to clipboard',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const filteredActors = actors?.filter(actor => {
+    const matchesSearch = !searchTerm || 
+      actor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      actor.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      actor.username?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesSearch;
+  }) || [];
+
   const handleFormSubmit = async (data: any, mode: ExecutionMode) => {
     if (!selectedActor) {
       console.error('❌ No actor selected for form submission');
       return;
     }
 
+    const startTime = Date.now();
     console.log('🚀 Starting actor execution:', {
       actorId: selectedActor.id,
       actorName: selectedActor.name,
@@ -100,29 +175,50 @@ const ApifyApp = () => {
         mode
       });
 
+      const duration = Date.now() - startTime;
       console.log('✅ Actor execution completed:', {
         runId: runResult.run.id,
         status: runResult.run.status,
-        duration: runResult.run.stats?.durationMillis,
+        duration: runResult.run.stats?.durationMillis || duration,
         resultType: mode,
         hasError: !!runResult.error
       });
+
+      // Add to run history
+      setRunHistory(prev => [{
+        id: runResult.run.id,
+        actorName: selectedActor.title || selectedActor.name,
+        timestamp: new Date().toISOString(),
+        duration: runResult.run.stats?.durationMillis || duration,
+        status: runResult.run.status
+      }, ...prev.slice(0, 9)]); // Keep last 10 runs
 
       setResult(runResult);
       setError(null);
       
       toast({
         title: 'Actor executed successfully',
-        description: `${selectedActor.name} completed in ${runResult.run.stats?.durationMillis ? Math.round(runResult.run.stats.durationMillis / 1000) : '?'}s`,
+        description: `${selectedActor.name} completed in ${runResult.run.stats?.durationMillis ? Math.round(runResult.run.stats.durationMillis / 1000) : Math.round(duration / 1000)}s`,
       });
     } catch (err: any) {
+      const duration = Date.now() - startTime;
       console.error('❌ Actor execution failed:', {
         error: err.message,
         actorId: selectedActor.id,
         actorName: selectedActor.name,
         inputData: data,
-        mode
+        mode,
+        duration
       });
+      
+      // Add failed run to history
+      setRunHistory(prev => [{
+        id: `failed-${Date.now()}`,
+        actorName: selectedActor.title || selectedActor.name,
+        timestamp: new Date().toISOString(),
+        duration,
+        status: 'FAILED'
+      }, ...prev.slice(0, 9)]);
       
       setError(err.message || 'Failed to execute actor');
       setResult(null);
@@ -189,8 +285,15 @@ const ApifyApp = () => {
             <div className="flex items-center gap-2">
               {user && (
                 <Badge variant="secondary" className="hidden md:flex">
+                  <User className="h-3 w-3 mr-1" />
                   {user.username}
                 </Badge>
+              )}
+              {runHistory.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
+                  <History className="h-4 w-4 mr-2" />
+                  History ({runHistory.length})
+                </Button>
               )}
               <Button onClick={handleLogout} variant="outline" size="sm">
                 <LogOut className="h-4 w-4 mr-2" />
@@ -209,6 +312,42 @@ const ApifyApp = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="space-y-8">
+          {/* Run History Panel */}
+          {showFilters && runHistory.length > 0 && (
+            <Card className="animate-fade-in">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Run History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {runHistory.map((run, index) => (
+                    <div key={run.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Badge 
+                          variant={run.status === 'SUCCEEDED' ? 'default' : run.status === 'FAILED' ? 'destructive' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {run.status}
+                        </Badge>
+                        <span className="text-sm font-medium">{run.actorName}</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {Math.round(run.duration / 1000)}s
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(run.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Error Banner */}
           {error && (
             <ErrorBanner
@@ -265,10 +404,35 @@ const ApifyApp = () => {
 
           {/* Step 1: Actor Selection */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Play className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">Step 1: Select Actor</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Play className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Step 1: Select Actor</h2>
+              </div>
+              
+              {actors && actors.length > 0 && (
+                <Badge variant="outline" className="text-sm">
+                  {filteredActors.length} of {actors.length} actors
+                </Badge>
+              )}
             </div>
+            
+            {/* Actor Search */}
+            {actors && actors.length > 1 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search actors by name, title, or username..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             
             {loadingActors ? (
               <Card>
@@ -309,17 +473,35 @@ const ApifyApp = () => {
           {/* Step 3: Results */}
           {result && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold">Step 3: Execution Results</h2>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  <h2 className="text-xl font-semibold">Step 3: Execution Results</h2>
+                </div>
+                
+                {/* Export Actions */}
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleCopyResult} variant="outline" size="sm">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy JSON
+                  </Button>
+                  <Button onClick={handleExportResult} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export JSON
+                  </Button>
+                </div>
               </div>
               
               <ResultDisplay result={result} />
               
-              <div className="flex justify-center pt-4">
+              <div className="flex justify-center gap-4 pt-4">
                 <Button onClick={handleReset} variant="outline">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Run Another Actor
+                </Button>
+                <Button onClick={handleCopyResult} variant="ghost">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Result
                 </Button>
               </div>
             </div>

@@ -88,15 +88,30 @@ const Landing = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link to="/app">
-                <Button size="lg" className="px-8 py-6 text-lg group">
-                  Start Using the App
+                <Button size="lg" className="px-8 py-6 text-lg group animate-fade-in hover-scale">
+                  Get Started with Your API Key
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
               
               <Badge variant="outline" className="text-sm">
-                No API Key Required - Backend Handled
+                Enter your Apify API token to begin
               </Badge>
+            </div>
+            
+            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Secure token handling</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Real-time execution</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Professional UI/UX</span>
+              </div>
             </div>
           </div>
         </div>
